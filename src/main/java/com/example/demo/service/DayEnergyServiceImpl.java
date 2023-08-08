@@ -104,14 +104,14 @@ public class DayEnergyServiceImpl implements DayEnergyService {
         String newTime = time[2] + time[1] + time[0];
         String newTime2 = "20110310";
 //        System.out.println(newTime);
-        List<DayEnergy> energyList = dayEnergyRepository.search(newTime2);
+        List<DayEnergy> energyList = dayEnergyRepository.search(newTime);
         return energyList;
     }
 
     @Override
-    public List<DayEnergy> publist() {
+    public List<DayEnergy> publist(String exchange, String key) {
         List<DayEnergy> data = search();
-        template.convertAndSend(MessagingConfig.EXCHANGE, MessagingConfig.ROUTING_KEY, data);
+        template.convertAndSend(exchange, key, data);
         return data;
     }
 }

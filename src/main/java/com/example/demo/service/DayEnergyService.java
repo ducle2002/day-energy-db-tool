@@ -17,5 +17,5 @@ public interface DayEnergyService {
 
     List<DayEnergy> search();
 
-    List<DayEnergy> publist();
+    List<DayEnergy> publist(String exchange, String key);
 }

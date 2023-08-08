@@ -1,6 +1,7 @@
 package com.example.demo.controller;
 
 import com.example.demo.dto.Job;
+import com.example.demo.dto.RabbitMqDto;
 import com.example.demo.entity.DayEnergy;
 import com.example.demo.service.DayEnergyService;
 import io.swagger.annotations.ApiOperation;
@@ -62,8 +63,8 @@ public class DayEnergyController {
         }
     }
     @GetMapping("/publish")
-    public List<DayEnergy> publish(){
-            List<DayEnergy> data = dayEnergyService.publist();
+    public List<DayEnergy> publish(@RequestBody RabbitMqDto rabbitMqDto){
+            List<DayEnergy> data = dayEnergyService.publist(rabbitMqDto.getExchange(), rabbitMqDto.getKey());
             return data;
 
     }

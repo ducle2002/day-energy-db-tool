@@ -9,7 +9,7 @@ import java.util.List;
 
 @Repository
 public interface DayEnergyRepository extends JpaRepository<DayEnergy, String> {
-    @Query(value = "SELECT TOP (10) d.RentCd" +
+    @Query(value = "SELECT d.RentCd" +
             "      ,d.EnergyDay" +
             "      ,d.FloorNo" +
             "      ,d.RoomNo" +
