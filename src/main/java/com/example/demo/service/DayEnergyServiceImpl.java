@@ -1,6 +1,5 @@
 package com.example.demo.service;
 
-import com.example.demo.config.MessagingConfig;
 import com.example.demo.entity.DayEnergy;
 import com.example.demo.dto.Job;
 import com.example.demo.repository.DayEnergyRepository;
@@ -17,6 +16,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.ScheduledFuture;
 
 @EnableScheduling
 @Service
@@ -24,6 +24,8 @@ public class DayEnergyServiceImpl implements DayEnergyService {
     private TaskScheduler taskScheduler;
     private WebClient webClient;
     private Map<String, Job> schedulerMap = new HashMap<>();
+
+    private Map<String, ScheduledFuture> schedulerFutureMap = new HashMap<>();
 
     @Autowired
     DayEnergyServiceImpl(TaskScheduler taskScheduler, WebClient webClient){
@@ -43,16 +45,20 @@ public class DayEnergyServiceImpl implements DayEnergyService {
 
     @Override
     public void deleteScheduledJob(String jobId) {
-        if(schedulerMap.containsKey(jobId))
+        if(schedulerMap.containsKey(jobId)) {
+            System.out.println(schedulerFutureMap.get(jobId));
+            schedulerFutureMap.get(jobId).cancel(true);
+            schedulerFutureMap.remove(jobId);
             schedulerMap.remove(jobId);
+        }
         else
             System.out.println("No jobs exists with Id:"+ jobId);
     }
 
     @Override
-    public void scheduleGetJob(Job job) {
+    public ScheduledFuture<?> scheduleGetJob(Job job) {
         System.out.println("scheduleGetJobing get job:"+ job.toString());
-        taskScheduler.schedule(
+        ScheduledFuture<?> future = taskScheduler.schedule(
                 () -> {
                     ResponseEntity<String> response = webClient.get()
                             .uri(job.getBaseURL() + job.getApiURL())
@@ -68,13 +74,17 @@ public class DayEnergyServiceImpl implements DayEnergyService {
                 },
                 new CronTrigger(job.getCron(), TimeZone.getTimeZone(TimeZone.getDefault().toZoneId()))
         );
-        schedulerMap.put(job.getJobName() + "-" + System.currentTimeMillis(), job);
+        String key = job.getJobName() + "-" + System.currentTimeMillis();
+
+        schedulerMap.put(key, job);
+        schedulerFutureMap.put(key, future);
+        return future;
     }
 
     @Override
-    public void schedulePostJob(Job job){
+    public ScheduledFuture<?> schedulePostJob(Job job){
         System.out.println("scheduling post job:"+ job.toString());
-        taskScheduler.schedule(
+        ScheduledFuture<?> future = taskScheduler.schedule(
                 () -> {
                     ResponseEntity<String> response = webClient.post()
                             .uri(job.getBaseURL() + job.getApiURL())
@@ -92,7 +102,10 @@ public class DayEnergyServiceImpl implements DayEnergyService {
                 },
                 new CronTrigger(job.getCron(), TimeZone.getTimeZone(TimeZone.getDefault().toZoneId()))
         );
-        schedulerMap.put(job.getJobName() + "-" + System.currentTimeMillis(), job);
+        String key = job.getJobName() + "-" + System.currentTimeMillis();
+        schedulerMap.put(key, job);
+        schedulerFutureMap.put(key, future);
+        return future;
     }
     @Override
     public List<DayEnergy> search() {
@@ -102,8 +115,6 @@ public class DayEnergyServiceImpl implements DayEnergyService {
 
         String[] time = formatDate.format(date).toString().split("/");
         String newTime = time[2] + time[1] + time[0];
-        String newTime2 = "20110310";
-//        System.out.println(newTime);
         List<DayEnergy> energyList = dayEnergyRepository.search(newTime);
         return energyList;
     }
@@ -112,6 +123,8 @@ public class DayEnergyServiceImpl implements DayEnergyService {
     public List<DayEnergy> publist(String exchange, String key) {
         List<DayEnergy> data = search();
         template.convertAndSend(exchange, key, data);
+        System.out.println(data);
+        String newData = toString();
         return data;
     }
 }
